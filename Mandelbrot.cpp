@@ -5,6 +5,7 @@
 # include <cmath>
 # include <vector>
 # include <fstream>
+# include <mpi.h>
 
 
 /** Une structure complexe est définie pour la bonne raison que la classe
