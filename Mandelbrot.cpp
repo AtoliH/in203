@@ -94,7 +94,10 @@ void
 computeMandelbrotSetRows(int W, int H, int maxIter, int num_ligne, int count, int* pixels)
 {
     for (int i = num_ligne; i < num_ligne + count && i < H; ++i)
-        computeMandelbrotSetRow(W, H, maxIter, num_ligne, pixels + W*(count-i-1));
+    {
+        //std::cout << i << " -> " << count << " -> " << num_ligne << " | " << W * count << " -> " << W*(count - i + num_ligne - 1) << std::endl;
+        computeMandelbrotSetRow(W, H, maxIter, i, pixels + W*(count-i+num_ligne-1));
+    }
 }
 
 std::vector<int>
@@ -144,22 +147,28 @@ int main(int argc, char *argv[] )
     //const int maxIter = 16777216;
     const int maxIter = 8*65536;
 
+    //std::cout << "Init" << std::endl;
     MPI_Init(&argc, &argv);
 
     MPI_Comm_size(MPI_COMM_WORLD, &nbp);
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
-    int step = 600/nbp;
-    int startrow = step * rank;
-    int matrixsize = (rank == 0)? W * H : W * step;
+    //std::cout << "Declare" << rank << std::endl;
+    int step = H/nbp;
+    int startrow = step * (nbp - rank - 1);
+    int matrixsize = (rank == 0)? W * step * nbp : W * step;
     std::vector<int> pixels(matrixsize);
 
+    //std::cout << "start" << rank << std::endl;
     computeMandelbrotSetRows(W, H, maxIter, startrow, step, pixels.data());
+    //std::cout << "end" << rank << std::endl;
 
-    MPI_Gather(pixels.data(), W * step, MPI_INT, pixels.data(), W * H, MPI_INT, 0, MPI_COMM_WORLD);
+    MPI_Gather(pixels.data(), W * step, MPI_INT, pixels.data(), W * step, MPI_INT, 0, MPI_COMM_WORLD);
 
     if (rank == 0)
         savePicture("mandelbrot.tga", W, H, pixels, maxIter);
+
+    MPI_Finalize();
     return EXIT_SUCCESS;
  }
     
