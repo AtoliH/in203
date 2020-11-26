@@ -42,7 +42,7 @@ std::ostream& operator << ( std::ostream& out, const Complex& c )
  **/
 int iterMandelbrot( int maxIter, const Complex& c)
 {
-    Complex z{0.,0.};
+    Complex z(0.,0.);
     // On vérifie dans un premier temps si le complexe
     // n'appartient pas à une zone de convergence connue :
     // Appartenance aux disques  C0{(0,0),1/4} et C1{(-1,0),1/4}
@@ -52,7 +52,7 @@ int iterMandelbrot( int maxIter, const Complex& c)
         return maxIter;
     // Appartenance à la cardioïde {(1/4,0),1/2(1-cos(theta))}    
     if ((c.real > -0.75) && (c.real < 0.5) ) {
-        Complex ct{c.real-0.25,c.imag};
+        Complex ct(c.real-0.25,c.imag);
         double ctnrm2 = sqrt(ct.sqNorm());
         if (ctnrm2 < 0.5*(1-ct.real/ctnrm2)) return maxIter;
     }
@@ -85,7 +85,7 @@ computeMandelbrotSetRow( int W, int H, int maxIter, int num_ligne, int* pixels)
     //
     // On parcourt les pixels de l'espace image :
     for ( int j = 0; j < W; ++j ) {
-       Complex c{-2.+j*scaleX,-1.125+ num_ligne*scaleY};
+       Complex c(-2.+j*scaleX,-1.125+ num_ligne*scaleY);
        pixels[j] = iterMandelbrot( maxIter, c );
     }
 }
@@ -94,7 +94,7 @@ void
 computeMandelbrotSetRows(int W, int H, int maxIter, int num_ligne, int count, int* pixels)
 {
     for (int i = num_ligne; i < num_ligne + count && i < H; ++i)
-        computeMandelbrotSetRow(W, H, maxIter, num_ligne, pixels + W*(H-i-1));
+        computeMandelbrotSetRow(W, H, maxIter, num_ligne, pixels + W*(count-i-1));
 }
 
 std::vector<int>
@@ -146,8 +146,8 @@ int main(int argc, char *argv[] )
 
     MPI_Init(&argc, &argv);
 
-    MPI_Comm_Size(MPI_COMM_WORLD, &nbp);
-    MPI_Comm_Rank(MPI_COMM_WORLD, &rank);
+    MPI_Comm_size(MPI_COMM_WORLD, &nbp);
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
     int step = 600/nbp;
     int startrow = step * rank;
@@ -156,9 +156,10 @@ int main(int argc, char *argv[] )
 
     computeMandelbrotSetRows(W, H, maxIter, startrow, step, pixels.data());
 
-    MPI_Gather(&matrixsize, step, MPI_INT, pixels.data(), W * H, MPI_INT, 0, MPI_COMM_WORLD);
+    MPI_Gather(pixels.data(), W * step, MPI_INT, pixels.data(), W * H, MPI_INT, 0, MPI_COMM_WORLD);
 
-    savePicture("mandelbrot.tga", W, H, pixels, maxIter);
+    if (rank == 0)
+        savePicture("mandelbrot.tga", W, H, pixels, maxIter);
     return EXIT_SUCCESS;
  }
     
