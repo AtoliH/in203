@@ -133,8 +133,8 @@ void savePicture( const std::string& filename, int W, int H, const std::vector<i
 
 int main(int argc, char *argv[] ) 
  { 
-    const int W = 800;
-    const int H = 600;
+    const int W = 800*4;
+    const int H = 600*4;
 
     int nbp, rank;
 
