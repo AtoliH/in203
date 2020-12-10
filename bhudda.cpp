@@ -71,6 +71,7 @@ void comp_mandelbrot_orbit( int maxIter, const Complex& c, unsigned width, unsig
         unsigned jp = unsigned((float(2)+z.re)*height/float(4));
         if ( (ip<width) && (jp<height) ) {
            int ind = ip+jp*width;
+#          pragma omp atomic
            image[ind] += 1;
         }
         i ++;
@@ -96,7 +97,7 @@ bhuddabrot ( unsigned long nbSamples, unsigned long maxIter, unsigned width, uns
     std::vector<unsigned> image(width*height, 0U);
 
     
-#   pragma omp parallel for num_threads(16)
+#   pragma omp parallel for
     for ( unsigned long iSample = 0; iSample < nbSamples; iSample++) {
         float r = genNorm();
         float angle = genAngle();
@@ -128,6 +129,10 @@ void save_image( const std::string &filename, unsigned width, unsigned height, c
 int main()
 {
     unsigned width = 768U, height = 1024U;
+
+    width *= 10;
+    height *= 10;
+
     std::cerr << "Starting program\n";
     std::chrono::time_point<std::chrono::system_clock> start, end;
     std::chrono::duration<double> elapsed_seconds;
