@@ -57,10 +57,12 @@ bool a_un_systeme_proche_colonisable(int i, int j, int width, int height, const 
     void 
 mise_a_jour(const parametres& params, int width, int height, const char* galaxie_previous, char* galaxie_next)
 {
+    int i;
+
     memcpy(galaxie_next, galaxie_previous, width*height*sizeof(char));
 
 #pragma omp parallel for
-    for ( int i = 0; i < height; ++i )
+    for ( i = 0; i < height; ++i )
     {
         for ( int j = 0; j < width; ++j )
         {
@@ -140,7 +142,10 @@ mise_a_jour(const parametres& params, int width, int height, const char* galaxie
             else if (galaxie_previous[i*width+j] == habitable)
             {
                 if (apparition_technologie(params))
+                {
+#                   pragma omp atomic write
                     galaxie_next[i*width+j] = habitee;
+                }
             }
             else { // inhabitable
                 // nothing to do : le systeme a explose

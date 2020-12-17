@@ -7,6 +7,7 @@
 #include <ctime>
 #include <iomanip>      // std::setw
 #include <chrono>
+#include <thread>
 
 #include "parametres.hpp"
 #include "galaxie.hpp"
@@ -64,11 +65,18 @@ int main(int argc, char ** argv)
     std::chrono::time_point<std::chrono::system_clock> start, end1, end2;
     while (1) {
         start = std::chrono::system_clock::now();
-        mise_a_jour(param, width, height, g.data(), g_next.data());
-        end1 = std::chrono::system_clock::now();
+        std::thread update([&end1, &param, &width, &height, &g, &g_next]() {
+            mise_a_jour(param, width, height, g.data(), g_next.data());
+            end1 = std::chrono::system_clock::now();
+        });
         g_next.swap(g);
-        gr.render(g);
-        end2 = std::chrono::system_clock::now();
+        std::thread render([&end2, &gr, &g]() {
+            gr.render(g);
+            end2 = std::chrono::system_clock::now();
+        });
+
+        update.join();
+        render.join();
         
         std::chrono::duration<double> elaps1 = end1 - start;
         std::chrono::duration<double> elaps2 = end2 - end1;
