@@ -57,14 +57,12 @@ bool a_un_systeme_proche_colonisable(int i, int j, int width, int height, const 
     void 
 mise_a_jour(const parametres& params, int width, int height, const char* galaxie_previous, char* galaxie_next)
 {
-    int i, j;
-
     memcpy(galaxie_next, galaxie_previous, width*height*sizeof(char));
 
-//#pragma omp parallel for
-    for ( i = 0; i < height; ++i )
+#pragma omp parallel for
+    for ( int i = 0; i < height; ++i )
     {
-        for ( j = 0; j < width; ++j )
+        for ( int j = 0; j < width; ++j )
         {
             if (galaxie_previous[i*width+j] == habitee)
             {
@@ -75,18 +73,22 @@ mise_a_jour(const parametres& params, int width, int height, const char* galaxie
                     {
                         if ( (i > 0) && (galaxie_previous[(i-1)*width+j] != inhabitable) )
                         {
+#                           pragma omp atomic write
                             galaxie_next[(i-1)*width+j] = habitee;
                         }
                         if ( (i < height-1) && (galaxie_previous[(i+1)*width+j] != inhabitable) )
                         {
+#                           pragma omp atomic write
                             galaxie_next[(i+1)*width+j] = habitee;
                         }
                         if ( (j > 0) && (galaxie_previous[i*width+j-1] != inhabitable) )
                         {
+#                           pragma omp atomic write
                             galaxie_next[i*width+j-1] = habitee;
                         }
                         if ( (j < width-1) && (galaxie_previous[i*width+j+1] != inhabitable) )
                         {
+#                           pragma omp atomic write
                             galaxie_next[i*width+j+1] = habitee;
                         }
                     }
@@ -99,21 +101,25 @@ mise_a_jour(const parametres& params, int width, int height, const char* galaxie
                             int dir = std::rand()%4;
                             if ( (i>0) && (0 == dir) && (galaxie_previous[(i-1)*width+j] != inhabitable) )
                             {
+#                               pragma omp atomic write
                                 galaxie_next[(i-1)*width+j] = habitee;
                                 ok = 1;
                             }
                             if ( (i<height-1) && (1 == dir) && (galaxie_previous[(i+1)*width+j] != inhabitable) )
                             {
+#                               pragma omp atomic write
                                 galaxie_next[(i+1)*width+j] = habitee;
                                 ok = 1;
                             }
                             if ( (j>0) && (2 == dir) && (galaxie_previous[i*width+j-1] != inhabitable) )
                             {
+#                               pragma omp atomic write
                                 galaxie_next[i*width+j-1] = habitee;
                                 ok = 1;
                             }
                             if ( (j<width-1) && (3 == dir) && (galaxie_previous[i*width+j+1] != inhabitable) )
                             {
+#                               pragma omp atomic write
                                 galaxie_next[i*width+j+1] = habitee;
                                 ok = 1;
                             }
@@ -122,10 +128,12 @@ mise_a_jour(const parametres& params, int width, int height, const char* galaxie
                 }// Fin si il y a encore un monde non habite et habitable
                 if (calcul_depeuplement(params))
                 {
+#                   pragma omp atomic write
                     galaxie_next[i*width+j] = habitable;
                 }
                 if (calcul_inhabitable(params))
                 {
+#                   pragma omp atomic write
                     galaxie_next[i*width+j] = inhabitable;
                 }
             }  // Fin si habitee
@@ -143,3 +151,4 @@ mise_a_jour(const parametres& params, int width, int height, const char* galaxie
 
 }
 //_ ______________________________________________________________________________________________ _
+
