@@ -10,7 +10,7 @@
 double nombre_aleatoire()
 {
     static thread_local std::random_device rd;
-    static thread_local std::mt19937 generateur(rd()); // Un seul générateur par thread car couteux
+    static thread_local std::minstd_rand0 generateur(rd()); // Un seul générateur par thread car couteux
     std::uniform_real_distribution<double> distribution(0.0, 1.0); // Opération peu couteuse que l'on peut se permettre
     return distribution(generateur);
 }
@@ -18,7 +18,7 @@ double nombre_aleatoire()
 int nombre_aleatoire_entier(int min, int max)
 {
     static thread_local std::random_device rd;
-    static thread_local std::mt19937 generateur(rd());
+    static thread_local std::minstd_rand0 generateur(rd());
     std::uniform_int_distribution<double> distribution(min, max);
     return distribution(generateur);
 }
