@@ -2,6 +2,7 @@
 #include <iostream>
 #include <SDL2/SDL_image.h>
 #include "galaxie.hpp"
+#include "parametres.hpp"
 
 //_ ______________________________________________________________________________________________ _
 galaxie::galaxie(int width, int height)
@@ -19,7 +20,7 @@ galaxie::galaxie(int width, int height, double chance_habitee)
     for ( i = 0; i < height; ++i )
         for ( j = 0; j < width; ++j )
         {
-            double val = std::rand()/(1.*RAND_MAX);
+            double val = nombre_aleatoire();
             if (val < chance_habitee)
             {
                 m_planetes[i*width+j] = habitee;

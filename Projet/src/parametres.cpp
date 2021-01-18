@@ -2,12 +2,29 @@
 #include <cassert>
 #include <ctime>
 #include <iostream>
+#include <random>
 #include "galaxie.hpp"
 #include "parametres.hpp"
 
+double nombre_aleatoire()
+{
+    static thread_local std::random_device rd;
+    static thread_local std::mt19937 generateur(rd()); // Un seul générateur par thread car couteux
+    std::uniform_real_distribution<double> distribution(0.0, 1.0); // Opération peu couteuse que l'on peut se permettre
+    return distribution(generateur);
+}
+
+int nombre_aleatoire_entier(int min, int max)
+{
+    static thread_local std::random_device rd;
+    static thread_local std::mt19937 generateur(rd());
+    std::uniform_int_distribution<double> distribution(min, max);
+    return distribution(generateur);
+}
+
 expansion calcul_expansion(const parametres& c)
 {
-    double val = std::rand()/(1.*RAND_MAX);
+    double val = nombre_aleatoire();
     if (val < 0.01*c.expansion)     // parmi c.expansion, on a 1% de chance d'expansion isotrope...
         return expansion_isotrope;
     if (val < c.expansion)          // ... et 99% de chance d'expansion dans 1 seule direction
@@ -17,7 +34,7 @@ expansion calcul_expansion(const parametres& c)
 //_ ______________________________________________________________________________________________ _
 bool calcul_depeuplement(const parametres& c)
 {
-    double val = std::rand()/(1.*RAND_MAX);
+    double val = nombre_aleatoire();
     if (val < c.disparition)
         return true;
     return false;   
@@ -25,7 +42,7 @@ bool calcul_depeuplement(const parametres& c)
 //_ ______________________________________________________________________________________________ _
 bool calcul_inhabitable(const parametres& c)
 {
-    double val = std::rand()/(1.*RAND_MAX);
+    double val = nombre_aleatoire();
     if (val < c.inhabitable)
         return true;
     return false;
@@ -33,7 +50,7 @@ bool calcul_inhabitable(const parametres& c)
 //_ ______________________________________________________________________________________________ _
 bool apparition_technologie(const parametres& p)
 {
-    double val = std::rand()/(1.*RAND_MAX);
+    double val = nombre_aleatoire();
     if (val < p.apparition_civ)
         return true;
     return false;
@@ -100,7 +117,7 @@ mise_a_jour(const parametres& params, int width, int height, const char* galaxie
                         int ok = 0;
                         do
                         {
-                            int dir = std::rand()%4;
+                            int dir = nombre_aleatoire_entier(0,3);
                             if ( (i>0) && (0 == dir) && (galaxie_previous[(i-1)*width+j] != inhabitable) )
                             {
 #                               pragma omp atomic write

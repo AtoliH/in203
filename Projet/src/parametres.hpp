@@ -1,6 +1,8 @@
 #ifndef _PARAMETRES_HPP_
 #define _PARAMETRES_HPP_
 
+#include <random>
+
 /***************************************************************************************************
  * @brief      Paramètres pour les différentes colonies                                            *
  **************************************************************************************************/
@@ -21,6 +23,7 @@ enum expansion
 };
 
 
+double nombre_aleatoire(); // Retourne un nombre aléatoire réel entre 0 et 1
 
 expansion calcul_expansion(const parametres& c);
 bool      calcul_depeuplement(const parametres& c);

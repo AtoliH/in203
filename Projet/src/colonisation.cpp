@@ -8,6 +8,7 @@
 #include <iomanip>      // std::setw
 #include <chrono>
 #include <thread>
+#include <memory>
 
 #include "parametres.hpp"
 #include "galaxie.hpp"
@@ -43,7 +44,6 @@ int main(int argc, char ** argv)
     std::cout << "\t Chance expansion : " << param.expansion << std::endl;
     std::cout << "\t Chance inhabitable : " << param.inhabitable << std::endl;
     std::cout << "Proba minimale prise en compte : " << 1./RAND_MAX << std::endl;
-    std::srand(std::time(nullptr));
 
     SDL_Init(SDL_INIT_TIMER | SDL_INIT_VIDEO);
 
@@ -64,6 +64,7 @@ int main(int argc, char ** argv)
 
     std::chrono::time_point<std::chrono::system_clock> start, end1, end2;
     while (1) {
+        // Recouvrement calcul / affichage en mémoire partagée 
         start = std::chrono::system_clock::now();
         std::thread update([&end1, &param, &width, &height, &g, &g_next]() {
             mise_a_jour(param, width, height, g.data(), g_next.data());
@@ -79,7 +80,7 @@ int main(int argc, char ** argv)
         render.join();
         
         std::chrono::duration<double> elaps1 = end1 - start;
-        std::chrono::duration<double> elaps2 = end2 - end1;
+        std::chrono::duration<double> elaps2 = end2 - start;
         
         temps += deltaT;
         std::cout << "Temps passe : "
