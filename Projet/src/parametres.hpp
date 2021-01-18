@@ -30,5 +30,6 @@ bool      calcul_depeuplement(const parametres& c);
 bool      calcul_inhabitable(const parametres& c);
 
 void mise_a_jour(const parametres& p, int width, int height, const char* galaxie_previous, char* galaxie_next);
+void mise_a_jour_partielle(const parametres& p, int width, int height, const char* galaxie_previous, char* galaxie_next, int start, int end, int rank);
 
 #endif

@@ -3,6 +3,7 @@
 #include <ctime>
 #include <iostream>
 #include <random>
+#include <mpi.h>
 #include "galaxie.hpp"
 #include "parametres.hpp"
 
@@ -173,4 +174,152 @@ mise_a_jour(const parametres& params, int width, int height, const char* galaxie
 
 }
 //_ ______________________________________________________________________________________________ _
+    void 
+mise_a_jour_partielle(const parametres& params, int width, int height, const char* galaxie_previous, char* galaxie_next,
+        int start, int end, int rank)
+{
+    int i;
 
+    memcpy(galaxie_next, galaxie_previous, width*height*sizeof(char));
+
+    int fantome_start = std::max(start - 1, 0);
+    int fantome_end = std::min(end + 1, height);
+
+#pragma omp parallel for
+    for ( i = fantome_start; i < fantome_end; ++i )
+    {
+        for ( int j = 0; j < width; ++j )
+        {
+            if (galaxie_previous[i*width+j] == habitee)
+            {
+                if ( a_un_systeme_proche_colonisable(i, j, width, height, galaxie_previous) )
+                {
+                    expansion e = calcul_expansion(params);
+                    if (e == expansion_isotrope)
+                    {
+                        if ( (i > 0) && (galaxie_previous[(i-1)*width+j] != inhabitable) )
+                        {
+#                           pragma omp atomic write
+                            galaxie_next[(i-1)*width+j] = habitee;
+                        }
+                        if ( (i < height-1) && (galaxie_previous[(i+1)*width+j] != inhabitable) )
+                        {
+#                           pragma omp atomic write
+                            galaxie_next[(i+1)*width+j] = habitee;
+                        }
+                        if ( (j > 0) && (galaxie_previous[i*width+j-1] != inhabitable) )
+                        {
+#                           pragma omp atomic write
+                            galaxie_next[i*width+j-1] = habitee;
+                        }
+                        if ( (j < width-1) && (galaxie_previous[i*width+j+1] != inhabitable) )
+                        {
+#                           pragma omp atomic write
+                            galaxie_next[i*width+j+1] = habitee;
+                        }
+                    }
+                    else if (e == expansion_unique)
+                    {
+                        // Calcul de la direction de l'expansion :
+                        int ok = 0;
+                        do
+                        {
+                            int dir = nombre_aleatoire_entier(0,3);
+                            if ( (i>0) && (0 == dir) && (galaxie_previous[(i-1)*width+j] != inhabitable) )
+                            {
+#                               pragma omp atomic write
+                                galaxie_next[(i-1)*width+j] = habitee;
+                                ok = 1;
+                            }
+                            if ( (i<height-1) && (1 == dir) && (galaxie_previous[(i+1)*width+j] != inhabitable) )
+                            {
+#                               pragma omp atomic write
+                                galaxie_next[(i+1)*width+j] = habitee;
+                                ok = 1;
+                            }
+                            if ( (j>0) && (2 == dir) && (galaxie_previous[i*width+j-1] != inhabitable) )
+                            {
+#                               pragma omp atomic write
+                                galaxie_next[i*width+j-1] = habitee;
+                                ok = 1;
+                            }
+                            if ( (j<width-1) && (3 == dir) && (galaxie_previous[i*width+j+1] != inhabitable) )
+                            {
+#                               pragma omp atomic write
+                                galaxie_next[i*width+j+1] = habitee;
+                                ok = 1;
+                            }
+                        } while (ok == 0);
+                    }// End if (e == expansion_unique)
+                }// Fin si il y a encore un monde non habite et habitable
+                if (calcul_depeuplement(params))
+                {
+#                   pragma omp atomic write
+                    galaxie_next[i*width+j] = habitable;
+                }
+                if (calcul_inhabitable(params))
+                {
+#                   pragma omp atomic write
+                    galaxie_next[i*width+j] = inhabitable;
+                }
+            }  // Fin si habitee
+            else if (galaxie_previous[i*width+j] == habitable)
+            {
+                if (apparition_technologie(params))
+                {
+#                   pragma omp atomic write
+                    galaxie_next[i*width+j] = habitee;
+                }
+            }
+            else { // inhabitable
+                // nothing to do : le systeme a explose
+            }
+            // if (galaxie_previous...)
+        }// for (j)
+    }// for (i)
+
+    // Percolation
+    char cellules_fantomes[width*2];
+    if (rank % 2 != 0) {
+        if (fantome_start != start) {
+            MPI_Send(galaxie_next + fantome_start * width, width * 2, MPI_CHAR, rank - 1, 0, MPI_COMM_WORLD);
+            MPI_Recv(galaxie_next + fantome_start * width, width * 2, MPI_CHAR, rank - 1, 0, MPI_COMM_WORLD, NULL);
+        }
+        if (fantome_end != end) {
+            MPI_Send(galaxie_next + end * width, width * 2, MPI_CHAR, rank + 1, 0, MPI_COMM_WORLD);
+            MPI_Recv(galaxie_next + end * width, width * 2, MPI_CHAR, rank + 1, 0, MPI_COMM_WORLD, NULL);
+        }
+    } else {
+        if (fantome_end != end) {
+            MPI_Recv(cellules_fantomes, width * 2, MPI_CHAR, rank + 1, 0, MPI_COMM_WORLD, NULL);
+            for (int j = 0; j < width * 2; ++j) {
+                char c1 = cellules_fantomes[j];
+                char c2 = galaxie_next[end*width + j];
+
+                if (c1 == inhabitable || c2 == inhabitable)
+                    galaxie_next[end*width + j] = inhabitable;
+                else if (c1 == habitable || c2 == habitable)
+                    galaxie_next[end*width + j] = habitable;
+                else
+                    galaxie_next[end * width + j] = habitee;
+            }
+            MPI_Send(galaxie_next + end * width, width * 2, MPI_CHAR, rank + 1, 0, MPI_COMM_WORLD);
+        }
+        if (fantome_start != start) {
+            MPI_Recv(cellules_fantomes, width * 2, MPI_CHAR, rank - 1, 0, MPI_COMM_WORLD, NULL);
+            for (int j = 0; j < width * 2; ++j) {
+                char c1 = cellules_fantomes[j];
+                char c2 = galaxie_next[fantome_start*width + j];
+
+                if (c1 == inhabitable || c2 == inhabitable)
+                    galaxie_next[fantome_start*width + j] = inhabitable;
+                else if (c1 == habitable || c2 == habitable)
+                    galaxie_next[fantome_start*width + j] = habitable;
+                else
+                    galaxie_next[fantome_start * width + j] = habitee;
+            }
+            MPI_Send(galaxie_next + fantome_start * width, width * 2, MPI_CHAR, rank - 1, 0, MPI_COMM_WORLD);
+        }
+    }
+}
+//_ ______________________________________________________________________________________________ _

@@ -1,6 +1,7 @@
 #include Make_linux.inc
 #include Make_msys2.inc
-include Make_osx.inc
+#include Make_osx.inc
+include Make_mpi.inc
 
 CXXFLAGS = -std=c++14 `sdl2-config --cflags`
 ifdef DEBUG
